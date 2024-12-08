@@ -28,7 +28,7 @@ class Program
                 ctx.Status($"Provádění benchmarků pro {dataSize} bajtů");
                 ctx.Spinner(Spinner.Known.Dots);
 
-                var results = RunAll(TimeSpan.FromSeconds(1), dataSize, benchmarks);
+                var results = RunAll(TimeSpan.FromSeconds(20), dataSize, benchmarks);
 
                 resultsDictionary[dataSize] = results;
             }
@@ -80,7 +80,7 @@ class Program
 
         foreach (var benchmark in benchmarks)
         {
-            results[benchmark.GetType().Name] = benchmark.RunBenchmark(duration, dataSize);
+            results[benchmark.GetType().Name] = BenchmarkExecutor.RunBenchmark(benchmark, duration, dataSize);
             AnsiConsole.MarkupLine($"[green]{benchmark.GetType().Name.Replace("Benchmark", "")} dokončeno pro {dataSize} bajtů[/]");
         }
         return results;
