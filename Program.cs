@@ -14,14 +14,18 @@ class Program
 
         var dataSizes = new[] { 10, 20, 50, 100 };
         var resultsDictionary = new Dictionary<int, Dictionary<string, long>>();
-        var benchmarks = new IHashBenchmark[] { new Md5Benchmark(), new Sha1Benchmark(), new Sha256Benchmark(), new Sha512Benchmark(), new Blake2bBenchmark()  };
+        var benchmarks = new IHashBenchmark[]
+        {
+            new Md5Benchmark(), new Sha1Benchmark(), new Sha256Benchmark(), new Sha512Benchmark(),
+            new Blake2bBenchmark()
+        };
 
         var statusConsole = AnsiConsole.Status()
             .AutoRefresh(true)
             .Spinner(Spinner.Known.Default)
             .SpinnerStyle(Style.Parse("green"));
 
-        statusConsole.Start("Spouštění benchmarků...", ctx => 
+        statusConsole.Start("Spouštění benchmarků...", ctx =>
         {
             foreach (var dataSize in dataSizes)
             {
@@ -34,19 +38,15 @@ class Program
             }
         });
 
-        var table = new Table().AddColumn("Počet bajtů");
+        var table = new Table().AddColumn("Hash Funkce").AddColumns(dataSizes.Select(ds => ds.ToString()).ToArray());
         foreach (var benchmark in benchmarks)
         {
-            table.AddColumn(benchmark.GetType().Name.Replace("Benchmark", ""));
-        }
-
-        foreach (var result in resultsDictionary)
-        {
-            var row = new List<string> { result.Key.ToString() };
-            foreach (var benchResult in result.Value)
+            var row = new List<string> { benchmark.GetType().Name.Replace("Benchmark", "") };
+            foreach (var dataSize in dataSizes)
             {
-                row.Add(benchResult.Value.ToString());
+                row.Add(resultsDictionary[dataSize][benchmark.GetType().Name].ToString());
             }
+
             table.AddRow(row.ToArray());
         }
 
@@ -60,17 +60,21 @@ class Program
         var fileName = $"BenchmarkResults_{DateTime.Now:yyyyMMdd_HHmmss}.csv";
         using (var writer = new StreamWriter(fileName))
         {
-            writer.WriteLine("DataSize," + string.Join(",", resultsDictionary.First().Value.Keys));
+            writer.WriteLine("HashFunction," + string.Join(",", resultsDictionary.Keys));
 
             // Write the data
-            foreach (var result in resultsDictionary)
+            foreach (var benchmark in resultsDictionary.First().Value.Keys)
             {
-                var dataSize = result.Key;
-                var lineData = new List<string> { dataSize.ToString() };
-                lineData.AddRange(result.Value.Values.Select(value => value.ToString()));
+                var lineData = new List<string> { benchmark.Replace("Benchmark", "") };
+                foreach (var dataSize in resultsDictionary.Keys)
+                {
+                    lineData.Add(resultsDictionary[dataSize][benchmark].ToString());
+                }
+
                 writer.WriteLine(string.Join(",", lineData));
             }
         }
+
         AnsiConsole.MarkupLine($"[bold green]Výsledky uloženy do {fileName}[/]");
     }
 
@@ -81,8 +85,10 @@ class Program
         foreach (var benchmark in benchmarks)
         {
             results[benchmark.GetType().Name] = BenchmarkExecutor.RunBenchmark(benchmark, duration, dataSize);
-            AnsiConsole.MarkupLine($"[green]{benchmark.GetType().Name.Replace("Benchmark", "")} dokončeno pro {dataSize} bajtů[/]");
+            AnsiConsole.MarkupLine(
+                $"[green]{benchmark.GetType().Name.Replace("Benchmark", "")} dokončeno pro {dataSize} bajtů[/]");
         }
+
         return results;
     }
 }
